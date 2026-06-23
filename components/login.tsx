@@ -17,6 +17,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { getSafeRedirect } from "@/lib/routes";
+import { Lock, Mail } from "lucide-react";
 
 type LoginMode = "login" | "forgot";
 
@@ -76,12 +77,12 @@ const Login = () => {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center p-4 bg-gradient-to-b from-background to-muted/20">
+      <Card className="w-full max-w-md shadow-lg">
         {mode === "login" ? (
           <>
-            <CardHeader>
-              <CardTitle>Login</CardTitle>
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
               <CardDescription>
                 Enter your credentials to access your account
               </CardDescription>
@@ -90,15 +91,19 @@ const Login = () => {
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoComplete="email"
-                  />
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -112,17 +117,21 @@ const Login = () => {
                       Forgot password?
                     </Button>
                   </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                  />
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" size="lg" disabled={loading}>
                   {loading ? "Logging in..." : "Login"}
                 </Button>
               </form>
@@ -138,8 +147,8 @@ const Login = () => {
           </>
         ) : (
           <>
-            <CardHeader>
-              <CardTitle>Reset Password</CardTitle>
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
               <CardDescription>
                 {resetSent
                   ? "We sent a password reset link to your email. Click the link to set a new password."
@@ -152,6 +161,7 @@ const Login = () => {
                   type="button"
                   variant="outline"
                   className="w-full"
+                  size="lg"
                   onClick={switchToLogin}
                 >
                   Back to login
@@ -160,17 +170,21 @@ const Login = () => {
                 <form onSubmit={handleForgotPassword} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="reset-email">Email</Label>
-                    <Input
-                      id="reset-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      autoComplete="email"
-                    />
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="reset-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        autoComplete="email"
+                        className="pl-10"
+                      />
+                    </div>
                   </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
+                  <Button type="submit" className="w-full" size="lg" disabled={loading}>
                     {loading ? "Sending..." : "Send reset link"}
                   </Button>
                   <Button
