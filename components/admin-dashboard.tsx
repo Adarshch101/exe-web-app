@@ -398,7 +398,9 @@ const AdminDashboard = () => {
                                   Remove Admin
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem
+                              {
+                                user.role !== "admin" &&(
+                                  <DropdownMenuItem
                                 variant="destructive"
                                 onClick={() =>
                                   setDeleteTarget({ type: "user", item: user })
@@ -407,6 +409,8 @@ const AdminDashboard = () => {
                                 <Trash2Icon />
                                 Delete User
                               </DropdownMenuItem>
+                                )
+                              }
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
