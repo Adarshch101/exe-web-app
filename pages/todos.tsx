@@ -4,11 +4,6 @@ import { useAuth } from "@/components/AuthProvider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 type Todo = {
@@ -31,7 +26,7 @@ export default function TodosPage() {
     const [todos, setTodos] = useState<Todo[]>([]);
     const [newTodo, setNewTodo] = useState("");
     const [loading, setLoading] = useState(true);
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [showAddTodo, setShowAddTodo] = useState(false);
     const [newTask, setNewTask] = useState("");
     const [newDate, setNewDate] = useState("");
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -84,7 +79,7 @@ export default function TodosPage() {
         }
     }
 
-    async function handleAddTodo(e: React.FormEvent) {
+    async function handleAddTodo(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         if (!user) return;
 
@@ -95,8 +90,6 @@ export default function TodosPage() {
                 task: newTask,
                 user_id: user.id,
                 completed: false,
-                created_at: new Date(),
-                updated_at: new Date(),
             })
             .select()
             .single();
@@ -155,7 +148,7 @@ export default function TodosPage() {
     }
 
     function handleCancelAddTodo() {
-        setIsAddDialogOpen(false);
+        setShowAddTodo(false);
         setNewTodo("");
         setNewTask("");
         setNewDate("");
@@ -166,73 +159,97 @@ export default function TodosPage() {
 
         if (isEditing) {
             return (
-                <Card key={todo.id} className="mb-4 border-primary/50">
-                    <CardHeader>
-                        <CardTitle>Edit Todo</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor={`edit-title-${todo.id}`}>Title</Label>
-                            <Input
-                                id={`edit-title-${todo.id}`}
-                                value={editForm.title}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditForm({ ...editForm, title: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor={`edit-task-${todo.id}`}>Task</Label>
-                            <Textarea
-                                id={`edit-task-${todo.id}`}
-                                rows={4}
-                                value={editForm.task}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditForm({ ...editForm, task: e.target.value })}
-                            />
-                        </div>
-                        <div className="flex gap-2">
-                            <Button onClick={() => handleUpdate(todo.id)}>Save</Button>
-                            <Button variant="destructive" onClick={cancelEdit}>Cancel</Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                <div
+                    key={todo.id}
+                    className="flex flex-col gap-4 shadow-md p-4 rounded-md mb-4 border border-blue-200 bg-blue-50"
+                >
+                    <h2 className="text-lg font-semibold">Edit Todo</h2>
+                    <div className="flex flex-col gap-2">
+                        <label htmlFor={`edit-title-${todo.id}`} className="text-lg font-semibold">
+                            Title
+                        </label>
+                        <Input
+                            id={`edit-title-${todo.id}`}
+                            type="text"
+                            className="w-full border-2 border-gray-300 rounded-md p-2"
+                            value={editForm.title}
+                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label htmlFor={`edit-task-${todo.id}`} className="text-lg font-semibold">
+                            Task
+                        </label>
+                        <textarea
+                            id={`edit-task-${todo.id}`}
+                            rows={4}
+                            className="w-full border-2 border-gray-300 rounded-md p-2"
+                            value={editForm.task}
+                            onChange={(e) => setEditForm({ ...editForm, task: e.target.value })}
+                        />
+                    </div>
+                    <div className="flex gap-4">
+                        <Button
+                            type="button"
+                            onClick={() => handleUpdate(todo.id)}
+                            className="bg-blue-500 hover:bg-blue-600"
+                        >
+                            Save
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="bg-red-500 hover:bg-red-600"
+                        >
+                            Cancel
+                        </Button>
+                    </div>
+                </div>
             );
         }
 
         return (
-            <Card key={todo.id} className="mb-4">
-                <CardHeader>
-                    <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                            <CardTitle className="mb-2">{todo.title}</CardTitle>
-                            <CardDescription className="text-base">{todo.task}</CardDescription>
-                        </div>
-                        <Badge variant={todo.completed ? "default" : "secondary"}>
-                            {todo.completed ? "Completed" : "Incomplete"}
-                        </Badge>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                        Created: {new Date(todo.created_at).toLocaleDateString()}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                        {!todo.completed ? (
-                            <Button size="sm" onClick={() => handleComplete(todo.id)}>
-                                Complete
-                            </Button>
-                        ) : (
-                            <Button size="sm" variant="outline" onClick={() => handleIncomplete(todo.id)}>
-                                Mark Incomplete
-                            </Button>
-                        )}
-                        <Button size="sm" variant="outline" onClick={() => openEdit(todo)}>
-                            Edit
+            <div
+                key={todo.id}
+                className="flex flex-col gap-2 shadow-md p-4 rounded-md mb-4 border border-gray-200"
+            >
+                <p className="font-semibold">{todo.title}</p>
+                <p>{todo.task}</p>
+                <p className="text-sm text-gray-500">{todo.created_at}</p>
+                <div className="flex flex-wrap gap-2">
+                    {!todo.completed ? (
+                        <Button
+                            type="button"
+                            onClick={() => handleComplete(todo.id)}
+                            className="bg-green-500 hover:bg-green-600"
+                        >
+                            Complete
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDelete(todo.id)}>
-                            Delete
+                    ) : (
+                        <Button
+                            type="button"
+                            onClick={() => handleIncomplete(todo.id)}
+                            className="bg-yellow-500 hover:bg-yellow-600"
+                        >
+                            Mark Incomplete
                         </Button>
-                    </div>
-                </CardContent>
-            </Card>
+                    )}
+                    <Button
+                        type="button"
+                        onClick={() => openEdit(todo)}
+                        className="bg-blue-500 hover:bg-blue-600"
+                    >
+                        Update
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={() => handleDelete(todo.id)}
+                        className="bg-red-500 hover:bg-red-600"
+                    >
+                        Delete
+                    </Button>
+                </div>
+            </div>
         );
     }
 
@@ -252,94 +269,87 @@ export default function TodosPage() {
                     <h1 className="text-2xl font-bold">My Todos</h1>
                     <Button
                         type="button"
-                        size="lg"
-                        onClick={() => setIsAddDialogOpen(true)}
+                        className="text-lg font-bold bg-green-500 hover:bg-green-600 hover:cursor-pointer"
+                        onClick={() => setShowAddTodo(!showAddTodo)}
                     >
                         Add a new todo
                     </Button>
                 </div>
+                {showAddTodo && (
+                    <div className="flex w-full items-center justify-center flex-col gap-4 shadow-md p-4 rounded-md mb-6">
+                        <form className="flex flex-col gap-4 w-full max-w-lg" onSubmit={handleAddTodo}>
+                            <div className="flex flex-col gap-2">
+                                <label htmlFor="title" className="text-lg font-semibold">
+                                    Title
+                                </label>
+                                <Input
+                                    type="text"
+                                    className="w-full mb-4 border-2 border-gray-300 rounded-md p-2"
+                                    value={newTodo}
+                                    onChange={(e) => setNewTodo(e.target.value)}
+                                    placeholder="Add a new todo"
+                                    id="title"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label htmlFor="task" className="text-lg font-semibold">
+                                    Task
+                                </label>
+                                <textarea
+                                    rows={4}
+                                    className="w-full mb-4 border-2 border-gray-300 rounded-md p-2"
+                                    value={newTask}
+                                    onChange={(e) => setNewTask(e.target.value)}
+                                    placeholder="Add a new task"
+                                    id="task"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <label htmlFor="date" className="text-lg font-semibold">
+                                    Date
+                                </label>
+                                <Input
+                                    type="date"
+                                    className="w-full mb-4 border-2 border-gray-300 rounded-md p-2"
+                                    value={newDate}
+                                    onChange={(e) => setNewDate(e.target.value)}
+                                    id="date"
+                                />
+                            </div>
+                            <div className="flex gap-4">
+                                <Button type="submit" className="w-1/2 bg-green-500 hover:bg-green-600">
+                                    Add
+                                </Button>
+                                <Button
+                                    type="button"
+                                    onClick={handleCancelAddTodo}
+                                    className="w-1/2 bg-red-500 hover:bg-red-600"
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                )}
             </div>
 
             <div className="mb-8">
-                <h2 className="text-2xl font-bold mb-4">Incomplete Todos</h2>
+                <h1 className="text-2xl font-bold mb-4">Incomplete Todos</h1>
                 {todos.filter((todo) => !todo.completed).length === 0 ? (
-                    <Card>
-                        <CardContent className="py-8">
-                            <p className="text-center text-muted-foreground">No incomplete todos.</p>
-                        </CardContent>
-                    </Card>
+                    <p className="text-gray-500">No incomplete todos.</p>
                 ) : (
                     todos.filter((todo) => !todo.completed).map(renderTodoItem)
                 )}
             </div>
 
             <div>
-                <h2 className="text-2xl font-bold mb-4">Completed Todos</h2>
+                <h1 className="text-2xl font-bold mb-4">Complete Todos</h1>
                 {todos.filter((todo) => todo.completed).length === 0 ? (
-                    <Card>
-                        <CardContent className="py-8">
-                            <p className="text-center text-muted-foreground">No completed todos.</p>
-                        </CardContent>
-                    </Card>
+                    <p className="text-gray-500">No completed todos.</p>
                 ) : (
                     todos.filter((todo) => todo.completed).map(renderTodoItem)
                 )}
             </div>
-
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Add New Todo</DialogTitle>
-                        <DialogDescription>
-                            Create a new todo to track your tasks
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form className="space-y-4" onSubmit={handleAddTodo}>
-                        <div className="space-y-2">
-                            <Label htmlFor="title">Title</Label>
-                            <Input
-                                id="title"
-                                value={newTodo}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTodo(e.target.value)}
-                                placeholder="Add a new todo"
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="task">Task</Label>
-                            <Textarea
-                                id="task"
-                                rows={4}
-                                value={newTask}
-                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setNewTask(e.target.value)}
-                                placeholder="Add a new task"
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="date">Date</Label>
-                            <Input
-                                id="date"
-                                type="date"
-                                value={newDate}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewDate(e.target.value)}
-                                min={new Date().toISOString().split('T')[0]}
-                                required
-                            />
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleCancelAddTodo}
-                            >
-                                Cancel
-                            </Button>
-                            <Button type="submit">Add Todo</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }
