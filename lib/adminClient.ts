@@ -44,4 +44,5 @@ export type UpdateTodoPayload = {
   title: string;
   task: string;
   completed: boolean;
+  file?: File | null;
 };
