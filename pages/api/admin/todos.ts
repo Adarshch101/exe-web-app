@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyAdmin, getSupabaseAdmin } from "@/lib/adminAuth";
 
+const BUCKET_NAME = "todo-bucket";
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -44,11 +46,14 @@ export default async function handler(
   }
 
   if (req.method === "PATCH") {
-    const { id, title, task, completed } = req.body as {
+    const { id, title, task, completed, file_path, file_name, file_url } = req.body as {
       id?: string;
       title?: string;
       task?: string;
       completed?: boolean;
+      file_path?: string | null;
+      file_name?: string | null;
+      file_url?: string | null;
     };
 
     if (!id || title === undefined || task === undefined || completed === undefined) {
@@ -57,7 +62,15 @@ export default async function handler(
 
     const { data, error } = await writeClient
       .from("todos")
-      .update({ title, task, completed, updated_at: new Date().toISOString() })
+      .update({
+        title,
+        task,
+        completed,
+        file_path,
+        file_name,
+        file_url,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
       .select()
       .maybeSingle();
@@ -78,6 +91,24 @@ export default async function handler(
 
     if (!id || typeof id !== "string") {
       return res.status(400).json({ error: "Missing todo id" });
+    }
+
+    // Get the todo to check for file attachment
+    const { data: todo } = await writeClient
+      .from("todos")
+      .select("file_path")
+      .eq("id", id)
+      .maybeSingle();
+
+    // Delete file from storage if exists
+    if (todo?.file_path) {
+      const { error: fileDeleteError } = await writeClient.storage
+        .from(BUCKET_NAME)
+        .remove([todo.file_path]);
+
+      if (fileDeleteError) {
+        console.error("File delete error:", fileDeleteError);
+      }
     }
 
     const { error } = await writeClient.from("todos").delete().eq("id", id);

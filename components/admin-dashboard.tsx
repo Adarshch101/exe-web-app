@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { adminFetch } from "@/lib/adminClient";
+import { supabase } from "@/lib/supabaseClient";
 import type { Profile, TodoWithUser, UserRole } from "@/lib/types";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,12 +50,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontalIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { MoreHorizontalIcon, PencilIcon, Trash2Icon, FileIcon, ImageIcon } from "lucide-react";
 
 type DeleteTarget =
   | { type: "user"; item: Profile }
   | { type: "todo"; item: TodoWithUser }
   | null;
+
+function isImageFile(fileName?: string | null) {
+  return /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName || "");
+}
+
+const BUCKET_NAME = "todo-bucket";
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -66,6 +73,7 @@ const AdminDashboard = () => {
     title: "",
     task: "",
     completed: false,
+    file: null as File | null,
   });
   const [saving, setSaving] = useState(false);
 
@@ -150,6 +158,7 @@ const AdminDashboard = () => {
       title: todo.title,
       task: todo.task,
       completed: todo.completed,
+      file: null,
     });
   }
 
@@ -157,22 +166,91 @@ const AdminDashboard = () => {
     if (!editingTodo) return;
 
     setSaving(true);
-    const res = await adminFetch("/api/admin/todos", {
-      method: "PATCH",
-      body: JSON.stringify({
-        id: editingTodo.id,
-        ...editForm,
-      }),
-    });
 
-    if (!res.ok) {
-      const err = await res.json();
-      toast.error(err.error ?? "Failed to update todo");
-    } else {
-      toast.success("Todo updated");
-      setEditingTodo(null);
-      await fetchData();
+    try {
+      let filePath: string | null = null;
+      let fileName: string | null = null;
+      let fileUrl: string | null = null;
+
+      // Get current todo to check for existing file
+      const { data: currentTodo } = await supabase
+        .from("todos")
+        .select("file_path, file_name")
+        .eq("id", editingTodo.id)
+        .single();
+
+      // If a new file is uploaded
+      if (editForm.file) {
+        // Delete old file if exists
+        if (currentTodo?.file_path) {
+          await supabase.storage
+            .from(BUCKET_NAME)
+            .remove([currentTodo.file_path]);
+        }
+
+        const extension = editForm.file.name.split(".").pop()?.toLowerCase() || "file";
+        const nameWithoutExtension = editForm.file.name.replace(/\.[^/.]+$/, "");
+        const safeFileName = nameWithoutExtension
+          .replace(/\s+/g, "-")
+          .replace(/[^a-zA-Z0-9_-]/g, "");
+        const filePathNew = `${editingTodo.user_id}/${Date.now()}-${crypto.randomUUID()}-${safeFileName}.${extension}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET_NAME)
+          .upload(filePathNew, editForm.file, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: editForm.file.type,
+          });
+
+        if (uploadError) {
+          throw new Error(uploadError.message);
+        }
+
+        filePath = filePathNew;
+        fileName = editForm.file.name;
+
+        const { data: signedUrlData } = await supabase.storage
+          .from(BUCKET_NAME)
+          .createSignedUrl(filePath, 60 * 60);
+        fileUrl = signedUrlData?.signedUrl ?? null;
+      } else {
+        // Keep existing file
+        filePath = currentTodo?.file_path ?? null;
+        fileName = currentTodo?.file_name ?? null;
+        if (filePath) {
+          const { data: signedUrlData } = await supabase.storage
+            .from(BUCKET_NAME)
+            .createSignedUrl(filePath, 60 * 60);
+          fileUrl = signedUrlData?.signedUrl ?? null;
+        }
+      }
+
+      const res = await adminFetch("/api/admin/todos", {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: editingTodo.id,
+          title: editForm.title,
+          task: editForm.task,
+          completed: editForm.completed,
+          file_path: filePath,
+          file_name: fileName,
+          file_url: fileUrl ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}/${filePath}` : null,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.error ?? "Failed to update todo");
+      } else {
+        toast.success("Todo updated");
+        setEditingTodo(null);
+        await fetchData();
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update todo");
     }
+
     setSaving(false);
   }
 
@@ -268,6 +346,7 @@ const AdminDashboard = () => {
                     <TableRow>
                       <TableHead>Title</TableHead>
                       <TableHead>User</TableHead>
+                      <TableHead>Attachment</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Created</TableHead>
                       <TableHead className="w-[70px]">Actions</TableHead>
@@ -286,6 +365,33 @@ const AdminDashboard = () => {
                         </TableCell>
                         <TableCell>
                           {todo.profiles?.email ?? "Unknown"}
+                        </TableCell>
+                        <TableCell>
+                          {todo.file_name ? (
+                            <div className="flex items-center gap-2">
+                              {isImageFile(todo.file_name) ? (
+                                <ImageIcon className="h-4 w-4" />
+                              ) : (
+                                <FileIcon className="h-4 w-4" />
+                              )}
+                              {todo.file_url ? (
+                                <a
+                                  href={todo.file_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-primary hover:underline"
+                                >
+                                  {todo.file_name}
+                                </a>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">
+                                  {todo.file_name}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -462,6 +568,38 @@ const AdminDashboard = () => {
                 }
               />
               <Label htmlFor="edit-completed">Completed</Label>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-file">Update Attachment (Optional)</Label>
+              <Input
+                id="edit-file"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  if (file) {
+                    if (file.size > 5 * 1024 * 1024) {
+                      toast.error("File size must be less than 5 MB");
+                      e.target.value = "";
+                      return;
+                    }
+                    setEditForm({ ...editForm, file });
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty to keep existing file. Maximum size: 5 MB.
+              </p>
+              {editingTodo?.file_name && !editForm.file && (
+                <div className="rounded-md border bg-muted/40 p-2 text-sm">
+                  Current file: <span className="font-medium">{editingTodo.file_name}</span>
+                </div>
+              )}
+              {editForm.file && (
+                <div className="rounded-md border bg-muted/40 p-2 text-sm">
+                  New file: <span className="font-medium">{editForm.file.name}</span>
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>

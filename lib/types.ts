@@ -15,6 +15,9 @@ export type Todo = {
   completed: boolean;
   created_at: string;
   updated_at: string;
+  file_path?: string | null;
+  file_name?: string | null;
+  file_url?: string | null;
 };
 
 export type TodoWithUser = Todo & {

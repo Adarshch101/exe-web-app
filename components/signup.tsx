@@ -40,20 +40,20 @@ const Signup = () => {
     setLoading(false);
   }
 
-  async function handleGoogleSignup() {
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+  // async function handleGoogleSignup() {
+  //   setLoading(true);
+  //   const { error } = await supabase.auth.signInWithOAuth({
+  //     provider: 'google',
+  //     options: {
+  //       redirectTo: `${window.location.origin}/auth/callback`,
+  //     },
+  //   });
 
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-    }
-  }
+  //   if (error) {
+  //     toast.error(error.message);
+  //     setLoading(false);
+  //   }
+  // }
 
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center p-4 bg-gradient-to-b from-background to-muted/20">
@@ -66,7 +66,7 @@ const Signup = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-4">
-            <Button
+            {/* <Button
               type="button"
               variant="outline"
               className="w-full"
@@ -103,7 +103,7 @@ const Signup = () => {
                   Or continue with
                 </span>
               </div>
-            </div>
+            </div> */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
