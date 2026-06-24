@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Mail } from "lucide-react";
+import Link from "next/link";
 
 type Todo = {
   id: string;
@@ -121,7 +122,7 @@ export default function ProfilePage() {
               <p className="text-center text-muted-foreground">No todos yet. Create your first todo!</p>
               <div className="flex justify-center mt-4">
                 <Button asChild>
-                  <a href="/todos">Go to Todos</a>
+                  <Link href="/todos">Go to Todos</Link>
                 </Button>
               </div>
             </CardContent>
